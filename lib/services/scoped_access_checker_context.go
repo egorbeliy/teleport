@@ -513,4 +513,11 @@ var (
 		kind:          types.KindSPIFFEFederation,
 		verbs:         []string{types.VerbList, types.VerbRead},
 	}
+	// UnpinnedReadClusterNetworkingConfig is a special authorization to complete an
+	// unscoped access check to read a cluster networking config.
+	UnpinnedReadClusterNetworkingConfig = UnpinnedReadAuthorization{
+		resourceScope: scopes.Root,
+		kind:          types.KindClusterNetworkingConfig,
+		verbs:         []string{types.VerbRead},
+	}
 )
