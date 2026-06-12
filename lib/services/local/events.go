@@ -247,6 +247,15 @@ func (e *EventsService) NewWatcher(ctx context.Context, watch types.Watch) (type
 			parser = newInstanceParser()
 		case types.KindDevice:
 			parser = newDeviceParser()
+		case types.KindEnrollPairing:
+			p, err := newEnrollPairingParser(kind.Filter)
+			if err != nil {
+				if watch.AllowPartialSuccess {
+					continue
+				}
+				return nil, trace.Wrap(err)
+			}
+			parser = p
 		case types.KindAccessGraphSecretPrivateKey:
 			parser = newAccessGraphSecretPrivateKeyParser()
 		case types.KindAccessGraphSecretAuthorizedKey:
@@ -3243,6 +3252,62 @@ func (p *deviceParser) parse(event backend.Event) (types.Resource, error) {
 		return nil, trace.BadParameter("event %v is not supported", event.Type)
 	}
 }
+
+func newEnrollPairingParser(m map[string]string) (*enrollPairingParser, error) {
+	var filter types.EnrollPairingFilter
+	if err := filter.FromMap(m); err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return &enrollPairingParser{
+		baseParser: newBaseParser(backend.NewKey(enrollPairingDirPrefix...)),
+		filter:     filter,
+	}, nil
+}
+
+type enrollPairingParser struct {
+	baseParser
+	filter types.EnrollPairingFilter
+}
+
+func (p *enrollPairingParser) parse(event backend.Event) (types.Resource, error) {
+	switch event.Type {
+	case types.OpDelete:
+		name := event.Item.Key.TrimPrefix(backend.NewKey(enrollPairingDirPrefix...)).String()
+		name = strings.TrimPrefix(name, backend.SeparatorString)
+		if name == "" {
+			return nil, trace.NotFound("failed parsing %v", event.Item.Key.String())
+		}
+		// Delete events carry no value, so we can't apply the token filter
+		// here. Pass them through; the public RPC handler interprets a delete
+		// as "the pairing I was waiting on disappeared" and returns early.
+		return &types.ResourceHeader{
+			Kind:    types.KindEnrollPairing,
+			Version: types.V1,
+			Metadata: types.Metadata{
+				Name:      name,
+				Namespace: apidefaults.Namespace,
+			},
+		}, nil
+	case types.OpPut:
+		pairing, err := services.UnmarshalEnrollPairing(event.Item.Value,
+			services.WithExpires(event.Item.Expires),
+			services.WithRevision(event.Item.Revision),
+		)
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+		if !p.filter.Match(pairing.GetStatus().GetToken()) {
+			return nil, nil
+		}
+		return types.ProtoResource153ToLegacy(pairing), nil
+	default:
+		return nil, trace.BadParameter("event %v is not supported", event.Type)
+	}
+}
+
+// enrollPairingDirPrefix is the backend prefix under which EnrollPairings live.
+// Keep in sync with enrollPairingKey in enroll_pairing.go.
+var enrollPairingDirPrefix = []string{"devices", "enroll_pairing"}
 
 func newAccessGraphSecretPrivateKeyParser() *accessGraphSecretPrivateKeyParser {
 	return &accessGraphSecretPrivateKeyParser{
