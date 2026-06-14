@@ -41,9 +41,7 @@ import (
 	"github.com/gravitational/teleport/lib/service"
 	"github.com/gravitational/teleport/lib/service/servicecfg"
 	"github.com/gravitational/teleport/lib/utils"
-	awsutils "github.com/gravitational/teleport/lib/utils/aws"
 	testserver "github.com/gravitational/teleport/tool/teleport/testenv"
-	"github.com/gravitational/trace"
 )
 
 func TestAWS(t *testing.T) {
@@ -198,139 +196,6 @@ func promptTestAWSApp(t *testing.T) types.Application {
 	return app
 }
 
-func TestPromptRoleInteractive(t *testing.T) {
-	t.Parallel()
-
-	testRoleARNs := []string{
-		promptAlphaRoleARN,
-		promptBetaRoleARN,
-	}
-
-	roles := awsutils.FilterAWSRoles(testRoleARNs, "")
-	require.Len(t, roles, 2)
-
-	tests := []struct {
-		name           string
-		input          string
-		wantARN        string
-		wantOutputText []string
-	}{
-		{
-			name:    "selects role",
-			input:   "2\n",
-			wantARN: promptBetaRoleARN,
-			wantOutputText: []string{
-				"Available AWS roles:",
-				"Enter role number:",
-			},
-		},
-		{
-			name:    "trims whitespace",
-			input:   " 1 \n",
-			wantARN: promptAlphaRoleARN,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			stdout := new(bytes.Buffer)
-			role, err := promptRole(newInteractiveLineReader(tt.input), stdout, roles)
-			require.NoError(t, err)
-			require.Equal(t, tt.wantARN, role.ARN)
-			for _, text := range tt.wantOutputText {
-				require.Contains(t, stdout.String(), text)
-			}
-		})
-	}
-}
-
-func TestPromptRolesInteractive(t *testing.T) {
-	t.Parallel()
-
-	testRoleARNs := []string{
-		promptAlphaRoleARN,
-		promptBetaRoleARN,
-	}
-
-	roles := awsutils.FilterAWSRoles(testRoleARNs, "")
-	require.Len(t, roles, 2)
-
-	tests := []struct {
-		name              string
-		input             string
-		roles             awsutils.Roles
-		wantARN           string
-		assertErr         func(*testing.T, error)
-		wantOutputText    []string
-		wantOutputCounts  map[string]int
-		wantOutputIsEmpty bool
-	}{
-		{
-			name:  "invalid input prints error",
-			input: "bad\n",
-			roles: roles,
-			assertErr: func(t *testing.T, err error) {
-				require.Error(t, err)
-				require.ErrorIs(t, err, io.EOF)
-			},
-			wantOutputText: []string{
-				"invalid role number: bad",
-			},
-			wantOutputCounts: map[string]int{
-				"Available AWS roles:": 2,
-				"Enter role number:":   2,
-			},
-		},
-		{
-			name:  "EOF",
-			input: "",
-			roles: roles,
-			assertErr: func(t *testing.T, err error) {
-				require.Error(t, err)
-				require.ErrorIs(t, err, io.EOF)
-			},
-		},
-		{
-			name:  "no roles",
-			input: "1\n",
-			roles: []awsutils.Role{},
-			assertErr: func(t *testing.T, err error) {
-				require.Error(t, err)
-				require.True(t, trace.IsBadParameter(err))
-			},
-			wantOutputIsEmpty: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			stdout := new(bytes.Buffer)
-			role, err := promptRoles(newInteractiveLineReader(tt.input), stdout, tt.roles)
-			if tt.assertErr != nil {
-				tt.assertErr(t, err)
-			} else {
-				require.NoError(t, err)
-				require.Equal(t, tt.wantARN, role.ARN)
-			}
-
-			output := stdout.String()
-			if tt.wantOutputIsEmpty {
-				require.Empty(t, output)
-			}
-			for _, text := range tt.wantOutputText {
-				require.Contains(t, output, text)
-			}
-			for text, count := range tt.wantOutputCounts {
-				require.Equal(t, count, strings.Count(output, text))
-			}
-		})
-	}
-}
-
 func TestGetARNFromFlagsInteractive(t *testing.T) {
 	t.Parallel()
 
@@ -379,12 +244,10 @@ func TestGetARNFromFlagsInteractive(t *testing.T) {
 			require.Equal(t, tt.wantARN, arn)
 			require.Equal(t, tt.wantAWSRole, cf.AWSRole)
 			if tt.wantPrompt {
-				require.Contains(t, stdout.String(), "Available AWS roles:")
-				require.Contains(t, stdout.String(), "Enter role number:")
+				require.Contains(t, stdout.String(), "Select AWS role number:")
 				return
 			}
-			require.NotContains(t, stdout.String(), "Available AWS roles:")
-			require.NotContains(t, stdout.String(), "Enter role number:")
+			require.NotContains(t, stdout.String(), "Select AWS role number:")
 		})
 	}
 }

@@ -18,14 +18,18 @@ limitations under the License.
 package prompt
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
 	urlpkg "net/url"
+	"strconv"
 	"strings"
 
 	"github.com/gravitational/trace"
 )
+
+const nAttempts = 5
 
 // Reader is the interface for prompt readers.
 type Reader interface {
@@ -81,6 +85,51 @@ func PickOne(ctx context.Context, out io.Writer, in Reader, question string, opt
 	}
 	return "", trace.BadParameter(
 		"%q is not a valid option, please specify one of [%s]", strings.TrimSpace(string(answerOrig)), strings.Join(options, ", "))
+}
+
+// PickOneByNumber prompts user to pick one of the provided options by the option number.
+// The prompt is written to out and the answer is read from in.
+//
+// It will show the options in a table with the provided column names.
+// - in is the reader to read input from (typically stdin).
+// - out is the writer to write output to (typically stdout).
+// - caption is the title to show before the table of options.
+// - prompt is the question the user will be presented when choosing options.
+// - options is the list of options to choose from.
+// - renderRow is function that converts an option item into a string.
+func PickOneByNumber[T any](
+	in io.Reader,
+	out io.Writer,
+	caption string,
+	prompt string,
+	options []T,
+	renderRow func(item T) string,
+) (T, error) {
+	reader := bufio.NewReader(in)
+
+	for range nAttempts {
+		fmt.Fprintf(out, "%s:\n", caption)
+
+		for i, option := range options {
+			fmt.Fprintf(out, "%d. %s\n", i+1, renderRow(option))
+		}
+
+		fmt.Fprintf(out, "%s: ", prompt)
+		input, err := reader.ReadString('\n')
+		if err != nil {
+			return *new(T), trace.Errorf("Failed reading prompt response.")
+		}
+
+		choice, err := strconv.Atoi(strings.TrimSpace(input))
+		if err != nil || choice < 1 || choice > len(options) {
+			fmt.Fprintf(out, "error: invalid choice: %s\n", input)
+			continue
+		}
+
+		return options[choice-1], nil
+	}
+
+	return *new(T), trace.LimitExceeded("too many attempts")
 }
 
 // Input prompts the user for freeform text input.
