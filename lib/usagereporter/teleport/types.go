@@ -2365,18 +2365,6 @@ func (e *BeamsCreatedEvent) Anonymize(a utils.Anonymizer) *prehogv1a.SubmitEvent
 	}
 }
 
-// BeamDestroyReason is the reason a beam was destroyed.
-type BeamDestroyReason = prehogv1a.BeamDestroyReason
-
-const (
-	// BeamDestroyReasonUnspecified is the default unspecified reason.
-	BeamDestroyReasonUnspecified = prehogv1a.BeamDestroyReason_BEAM_DESTROY_REASON_UNSPECIFIED
-	// BeamDestroyReasonUserDeleted indicates the user explicitly deleted the beam.
-	BeamDestroyReasonUserDeleted = prehogv1a.BeamDestroyReason_BEAM_DESTROY_REASON_USER_DELETED
-	// BeamDestroyReasonGCExpired indicates the beam was deleted by the garbage collector after expiry.
-	BeamDestroyReasonGCExpired = prehogv1a.BeamDestroyReason_BEAM_DESTROY_REASON_GC_EXPIRED
-)
-
 // BeamsDestroyedEvent is emitted when a beam VM is destroyed.
 type BeamsDestroyedEvent prehogv1a.BeamsDestroyedEvent
 
