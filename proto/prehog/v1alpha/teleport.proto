@@ -2347,7 +2347,6 @@ message SubmitEventRequest {
     UIInteractionEvent ui_interaction = 122;
 
     BeamsCreatedEvent beams_created = 123;
-
     BeamsDestroyedEvent beams_destroyed = 124;
   }
 
