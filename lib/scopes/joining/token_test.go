@@ -18,6 +18,7 @@ package joining_test
 
 import (
 	"cmp"
+	"encoding/base64"
 	"fmt"
 	"maps"
 	"testing"
@@ -1373,4 +1374,19 @@ func TestValidateTokenForUse(t *testing.T) {
 	strongValidateErr := joining.StrongValidateToken(token)
 	assert.Error(t, strongValidateErr)
 	assert.ErrorIs(t, strongValidateErr, joining.ValidateTokenForUse(token))
+}
+
+func TestScopedTokenEncoding(t *testing.T) {
+	encoded := joining.EncodeScopedToken("TESTING", "SECRETSHERE")
+	require.Equal(t, "TESTING~"+base64.RawURLEncoding.EncodeToString([]byte("SECRETSHERE")), encoded)
+
+	name, secret, ok := joining.DecodeScopedToken(encoded)
+	assert.True(t, ok)
+	assert.Equal(t, "TESTING", name)
+	assert.Equal(t, "SECRETSHERE", secret)
+
+	name, secret, ok = joining.DecodeScopedToken("TESTING")
+	assert.False(t, ok)
+	assert.Equal(t, "TESTING", name)
+	assert.Empty(t, secret)
 }
