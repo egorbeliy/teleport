@@ -29,6 +29,7 @@ import (
 
 	"github.com/gravitational/trace"
 
+	scopesv1 "github.com/gravitational/teleport/api/gen/proto/go/teleport/scopes/v1"
 	"github.com/gravitational/teleport/api/types"
 	apiutils "github.com/gravitational/teleport/api/utils"
 	"github.com/gravitational/teleport/api/utils/retryutils"
@@ -96,7 +97,7 @@ type HostAndUserCAPoolInfo struct {
 // a system role.
 // It returns the validated role and a bool indicating whether or not the role was found.
 func findPrimarySystemRole(i *tlsca.Identity) (types.SystemRole, bool) {
-	if i.ScopePin != nil {
+	if i.ScopePin.GetKind() == scopesv1.PinKind_PIN_KIND_AGENT {
 		role := types.SystemRole(i.ScopePin.GetSystemRoles().GetPrimary())
 		if err := role.Check(); err != nil {
 			return "", false
