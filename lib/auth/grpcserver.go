@@ -555,9 +555,15 @@ func (g *GRPCServer) WatchEvents(watch *authpb.Watch, stream authpb.AuthService_
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	componentName, isBuiltinServer := getBuiltinServerID(auth.scopedContext.Identity)
-	if !isBuiltinServer {
-		return trace.BadParameter("could not derive component name from auth context")
+	var componentName string
+	if auth.scopedContext.User != nil {
+		componentName = auth.scopedContext.User.GetName()
+	} else {
+		var isBuiltinServer bool
+		componentName, isBuiltinServer = getBuiltinServerID(auth.scopedContext.Identity)
+		if !isBuiltinServer {
+			return trace.BadParameter("could not derive component name from auth context")
+		}
 	}
 	return trace.Wrap(WatchEvents(watch, stream, componentName, auth, g.AuthServer.modules))
 }
