@@ -426,18 +426,10 @@ func (s *Server) authenticate(ctx context.Context, diag *diagnostic.Diagnostic, 
 
 	id := authCtx.Identity.GetIdentity()
 
-	var isInstance bool
+	isInstance := slices.Equal(id.Groups, []string{types.RoleInstance.String()})
 	var systemRoles types.SystemRoles
-	if slices.Equal(id.Groups, []string{types.RoleInstance.String()}) {
-		isInstance = true
+	if isInstance {
 		systemRoles, err = types.NewTeleportRoles(id.SystemRoles)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-	if id.ScopePin.GetSystemRoles().GetPrimary() == types.RoleInstance.String() {
-		isInstance = true
-		systemRoles, err = types.NewTeleportRoles(id.ScopePin.GetSystemRoles().GetAdditional())
 		if err != nil {
 			return nil, trace.Wrap(err)
 		}
