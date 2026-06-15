@@ -7277,6 +7277,11 @@ func (process *TeleportProcess) Close() error {
 		process.inventoryHandle.Close()
 	}
 
+	// Stops the fanOut goroutine to prevent leaks when Close() is called without Wait().
+	if ls, ok := process.Supervisor.(*LocalSupervisor); ok {
+		ls.signalClose()
+	}
+
 	return trace.NewAggregate(errors...)
 }
 
