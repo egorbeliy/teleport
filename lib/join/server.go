@@ -66,6 +66,7 @@ import (
 	"github.com/gravitational/teleport/lib/join/tpmjoin"
 	kubetoken "github.com/gravitational/teleport/lib/kube/token"
 	"github.com/gravitational/teleport/lib/modules"
+	"github.com/gravitational/teleport/lib/scopes"
 	"github.com/gravitational/teleport/lib/scopes/joining"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/services/readonly"
@@ -125,6 +126,7 @@ type ServerConfig struct {
 	OracleHTTPClient   utils.HTTPDoClient
 	Logger             *slog.Logger
 	Modules            modules.Modules
+	ScopesFeatures     scopes.Features
 }
 
 // Server implements cluster joining for nodes and bots.
@@ -179,11 +181,10 @@ func (s *Server) getProvisionToken(ctx context.Context, name string) (provision.
 			scopedErr = err
 			return
 		}
-		if err := joining.ValidateTokenForUse(res.GetToken()); err != nil {
+		if err := joining.ValidateTokenForUse(res.GetToken(), s.cfg.ScopesFeatures); err != nil {
 			scopedErr = err
 			return
 		}
-
 		scoped, scopedErr = joining.NewToken(res.GetToken())
 	})
 	wg.Go(func() {

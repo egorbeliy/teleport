@@ -42,6 +42,7 @@ import (
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib/backend"
 	"github.com/gravitational/teleport/lib/backend/memory"
+	"github.com/gravitational/teleport/lib/scopes"
 	"github.com/gravitational/teleport/lib/scopes/joining"
 	"github.com/gravitational/teleport/lib/services/local"
 )
@@ -49,7 +50,7 @@ import (
 func TestScopedTokenService(t *testing.T) {
 	bk, err := memory.New(memory.Config{})
 	require.NoError(t, err)
-	service, err := local.NewScopedTokenService(bk)
+	service, err := local.NewScopedTokenService(bk, scopes.Features{Enabled: true})
 	require.NoError(t, err)
 
 	ctx := t.Context()
@@ -160,7 +161,7 @@ func TestScopedTokenService(t *testing.T) {
 func TestScopedTokenList(t *testing.T) {
 	bk, err := memory.New(memory.Config{})
 	require.NoError(t, err)
-	service, err := local.NewScopedTokenService(bk)
+	service, err := local.NewScopedTokenService(bk, scopes.Features{Enabled: true})
 	require.NoError(t, err)
 
 	ctx := t.Context()
@@ -406,7 +407,7 @@ func TestScopedTokenList(t *testing.T) {
 func TestScopedTokenNameCollisions(t *testing.T) {
 	bk, err := memory.New(memory.Config{})
 	require.NoError(t, err)
-	service, err := local.NewScopedTokenService(bk)
+	service, err := local.NewScopedTokenService(bk, scopes.Features{Enabled: true})
 	require.NoError(t, err)
 
 	provisioningService := local.NewProvisioningService(bk)
@@ -513,7 +514,7 @@ func TestScopedTokenUse(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		bk, err := memory.New(memory.Config{})
 		require.NoError(t, err)
-		service, err := local.NewScopedTokenService(backend.NewSanitizer(bk))
+		service, err := local.NewScopedTokenService(backend.NewSanitizer(bk), scopes.Features{Enabled: true})
 		require.NoError(t, err)
 
 		ctx := t.Context()
@@ -620,7 +621,7 @@ func TestScopedTokenUpdate(t *testing.T) {
 	t.Parallel()
 	bk, err := memory.New(memory.Config{})
 	require.NoError(t, err)
-	service, err := local.NewScopedTokenService(backend.NewSanitizer(bk))
+	service, err := local.NewScopedTokenService(backend.NewSanitizer(bk), scopes.Features{Enabled: true})
 	require.NoError(t, err)
 
 	ctx := t.Context()
@@ -729,7 +730,7 @@ func TestScopedTokenUpsert(t *testing.T) {
 	t.Parallel()
 	bk, err := memory.New(memory.Config{})
 	require.NoError(t, err)
-	service, err := local.NewScopedTokenService(backend.NewSanitizer(bk))
+	service, err := local.NewScopedTokenService(backend.NewSanitizer(bk), scopes.Features{Enabled: true})
 	require.NoError(t, err)
 
 	ctx := t.Context()
@@ -1000,7 +1001,7 @@ func TestScopedTokenCreate(t *testing.T) {
 	t.Parallel()
 	bk, err := memory.New(memory.Config{})
 	require.NoError(t, err)
-	service, err := local.NewScopedTokenService(backend.NewSanitizer(bk))
+	service, err := local.NewScopedTokenService(backend.NewSanitizer(bk), scopes.Features{Enabled: true})
 	require.NoError(t, err)
 
 	ctx := t.Context()
