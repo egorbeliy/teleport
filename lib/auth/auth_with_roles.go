@@ -789,13 +789,7 @@ func (a *ScopedServerWithRoles) GenerateHostCerts(ctx context.Context, req *prot
 // checkAdditionalSystemRoles verifies additional system roles in host cert request.
 func (a *ScopedServerWithRoles) checkAdditionalSystemRoles(ctx context.Context, req *proto.HostCertsRequest) error {
 	// ensure requesting cert's primary role is a server role.
-	var isServer bool
-	switch role := a.scopedContext.Identity.(type) {
-	case authz.BuiltinRole:
-		isServer = role.IsServer()
-	case authz.ScopedBuiltinRole:
-		isServer = role.IsServer()
-	}
+	_, isServer := getBuiltinServerID(a.scopedContext.Identity)
 	if !isServer {
 		return trace.AccessDenied("additional system roles can only be claimed by a teleport built-in server")
 	}
@@ -879,16 +873,7 @@ func (a *ServerWithRoles) AssertSystemRole(ctx context.Context, req proto.System
 // use it for metrics purposes.
 func (a *ScopedServerWithRoles) RegisterInventoryControlStream(ics client.UpstreamInventoryControlStream) (*proto.UpstreamInventoryHello, error) {
 	// Ensure that caller is a teleport server
-	var serverID string
-	var isBuiltinServer bool
-	switch role := a.scopedContext.Identity.(type) {
-	case authz.BuiltinRole:
-		isBuiltinServer = role.IsServer()
-		serverID = role.GetServerID()
-	case authz.ScopedBuiltinRole:
-		isBuiltinServer = role.IsServer()
-		serverID = role.GetServerID()
-	}
+	serverID, isBuiltinServer := getBuiltinServerID(a.scopedContext.Identity)
 	if !isBuiltinServer {
 		return nil, trace.AccessDenied("inventory control streams can only be created by a teleport built-in server")
 	}
@@ -8891,4 +8876,17 @@ func checkOktaLockAccess(ctx context.Context, authzCtx *authz.Context, locks ser
 	}
 
 	return okta.CheckAccess(authzCtx, existingLock, verb)
+}
+
+// getBuiltinServerID returns the builtin server ID associated with the identity.
+// If the identity is not a builtin server role, and empty string and false are returned.
+func getBuiltinServerID(identityGetter authz.IdentityGetter) (serverID string, isBuiltinServer bool) {
+	switch role := identityGetter.(type) {
+	case authz.BuiltinRole:
+		return role.GetServerID(), role.IsServer()
+	case authz.ScopedBuiltinRole:
+		return role.GetServerID(), role.IsServer()
+	}
+
+	return "", false
 }

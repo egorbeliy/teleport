@@ -555,17 +555,9 @@ func (g *GRPCServer) WatchEvents(watch *authpb.Watch, stream authpb.AuthService_
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	var componentName string
-	if auth.scopedContext.User != nil {
-		componentName = auth.scopedContext.User.GetName()
-	} else {
-		// [authz.ScopedBuiltinRole] does not assign a value to scopedContext.User, so we need to
-		// derive the component name from the server FQDN directly
-		scopedBuiltin, isBuiltin := auth.scopedContext.Identity.(authz.ScopedBuiltinRole)
-		if !isBuiltin {
-			return trace.BadParameter("could not derive component name from auth context")
-		}
-		componentName = scopedBuiltin.ServerFQDN
+	componentName, isBuiltinServer := getBuiltinServerID(auth.scopedContext.Identity)
+	if !isBuiltinServer {
+		return trace.BadParameter("could not derive component name from auth context")
 	}
 	return trace.Wrap(WatchEvents(watch, stream, componentName, auth, g.AuthServer.modules))
 }

@@ -12880,44 +12880,6 @@ type inventoryControlStreamHarness struct {
 	downstream apiclient.DownstreamInventoryControlStream
 }
 
-// func newInventoryControlStreamHarness(t *testing.T, srv *authtest.AuthServer, serverID, scope, labelHash string, role types.SystemRole) inventoryControlStreamHarness {
-// 	t.Helper()
-
-// 	serverFQDN := serverID + "." + srv.ClusterName
-// 	identity := authz.BuiltinRole{
-// 		Role:                  types.RoleInstance,
-// 		AdditionalSystemRoles: types.SystemRoles{role},
-// 		Username:              serverFQDN,
-// 		ClusterName:           srv.ClusterName,
-// 		Identity: tlsca.Identity{
-// 			Username:           serverFQDN,
-// 			AgentScope:         scope,
-// 			ImmutableLabelHash: labelHash,
-// 		},
-// 	}
-
-// 	authContext, err := srv.Authorizer.Authorize(authz.ContextWithUser(t.Context(), identity))
-// 	require.NoError(t, err)
-
-// 	authWithRole := auth.NewServerWithRoles(
-// 		srv.AuthServer,
-// 		srv.AuditLog,
-// 		*authContext,
-// 	)
-// 	upstream, downstream := apiclient.InventoryControlStreamPipe()
-
-// 	t.Cleanup(func() {
-// 		_ = upstream.Close()
-// 		_ = downstream.Close()
-// 	})
-
-// 	return inventoryControlStreamHarness{
-// 		server:     authWithRole.ScopedServerWithRoles(),
-// 		upstream:   upstream,
-// 		downstream: downstream,
-// 	}
-// }
-
 func scopedHostWithLabelHash(t *testing.T, clusterName, serverID, scope, labelHash string, role types.SystemRole) authtest.TestIdentity {
 	t.Helper()
 
