@@ -1684,8 +1684,16 @@ func (s *Server) startAzureServerDiscovery() {
 					discoveryConfigName: group.Metadata.DiscoveryConfigName,
 					integration:         group.Metadata.Integration,
 				}
+				status, err := s.reconcileAzureServers(group)
+				if err != nil {
+					s.Log.WarnContext(s.ctx, "Failed to reconcile discovered Azure instances with current Teleport nodes, skipping installation",
+						"group", group,
+						"error", err,
+					)
+					continue
+				}
 				eg.Go(func() error {
-					status := s.installAzureServers(group, vmTasks, sem)
+					status := s.installAzureServers(group, vmTasks, status, sem)
 					sm.updateConcurrently(key, status)
 					return nil
 				})
@@ -1716,21 +1724,20 @@ func (s *Server) startAzureServerDiscovery() {
 	go azureWatcher.Run()
 }
 
-func (s *Server) installAzureServers(instances *server.AzureInstances, vmTasks *azureVMTasks, sem *semaphore.Weighted) discoveryGroupStatus {
+func (s *Server) reconcileAzureServers(instances *server.AzureInstances) (discoveryGroupStatus, error) {
 	var status discoveryGroupStatus
 	log := s.Log.With("group", instances)
 	log.DebugContext(s.ctx, "Processing instance group")
 	found := len(instances.Instances)
 	if found == 0 {
-		log.DebugContext(s.ctx, "No Azure instances found, skipping installation")
-		return status
+		log.DebugContext(s.ctx, "No Azure instances found")
+		return status, nil
 	}
 	status.found += found
 
 	nodes, err := s.nodeWatcher.CurrentResources(s.ctx)
 	if err != nil {
-		log.WarnContext(s.ctx, "Failed to get current node resources", "error", err)
-		return status
+		return status, trace.Wrap(err, "get current resources")
 	}
 	instances.FilterExistingNodes(nodes)
 
@@ -1742,10 +1749,12 @@ func (s *Server) installAzureServers(instances *server.AzureInstances, vmTasks *
 		log.DebugContext(s.ctx, "Filtered out Azure instances that have already been enrolled",
 			"enrolled", enrolled,
 		)
-		// re-evaluate the instances log value after filtering
-		log = s.Log.With("group", instances)
 	}
+	return status, nil
+}
 
+func (s *Server) installAzureServers(instances *server.AzureInstances, vmTasks *azureVMTasks, status discoveryGroupStatus, sem *semaphore.Weighted) discoveryGroupStatus {
+	log := s.Log.With("group", instances)
 	if len(instances.Instances) == 0 {
 		log.DebugContext(s.ctx, "No Azure instances remain to enroll, skipping installation")
 		return status
