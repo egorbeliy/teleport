@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -383,15 +384,7 @@ func TestJoinToken(t *testing.T) {
 					return key == "Time" || key == "ID"
 				}),
 				// sort roles so the diff is deterministic
-				cmpopts.SortSlices(func(a, b string) int {
-					if a < b {
-						return -1
-					}
-					if a > b {
-						return 1
-					}
-					return 0
-				}),
+				cmpopts.SortSlices(strings.Compare),
 			))
 		}, 5*time.Second, 5*time.Millisecond, "expected instance.join failed event not found")
 	})

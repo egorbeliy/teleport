@@ -1504,9 +1504,9 @@ export const formatters: Formatters = {
     desc: 'Bot Joined',
     format: ({ bot_name, method, token_name, scope }) => {
       if (scope) {
-        return `Bot [${bot_name}] joined the cluster using the [${method}] join method and the [${token_name || 'unknown'}] token`;
+        return `Bot [${bot_name}] joined the cluster in scope [${scope}] using the [${method}] join method and the [${token_name || 'unknown'}] token`;
       }
-      return `Bot [${bot_name}] joined the cluster in scope [${scope}] using the [${method}] join method and the [${token_name || 'unknown'}] token`;
+      return `Bot [${bot_name}] joined the cluster using the [${method}] join method and the [${token_name || 'unknown'}] token`;
     },
   },
   [eventCodes.BOT_JOIN_FAILURE]: {

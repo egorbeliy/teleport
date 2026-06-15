@@ -650,7 +650,7 @@ func (a *Server) emitJoinEvent(ctx context.Context, token provision.Token, param
 		ConnectionMetadata: apievents.ConnectionMetadata{
 			RemoteAddr: params.RemoteAddr,
 		},
-		Roles: token.GetRoles().StringSlice(),
+		Roles: systemRoles.StringSlice(),
 		Scope: token.GetAssignedScope(),
 	}
 
