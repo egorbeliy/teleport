@@ -635,7 +635,12 @@ func newStandaloneScopedTeleport(t *testing.T, clock clockwork.Clock, scopeFeatu
 	cfg.CircuitBreakerConfig = breaker.NoopBreakerConfig()
 	cfg.InstanceMetadataClient = imds.NewDisabledIMDSClient()
 	authProcess := startAndWait(t, cfg, service.AuthTLSReady)
-	t.Cleanup(func() { authProcess.Close() })
+	t.Cleanup(
+		func() {
+			assert.NoError(t, authProcess.Close())
+			assert.NoError(t, authProcess.Wait())
+		},
+	)
 	authAddr, err := authProcess.AuthAddr()
 	require.NoError(t, err)
 
@@ -702,7 +707,12 @@ func newStandaloneScopedTeleport(t *testing.T, clock clockwork.Clock, scopeFeatu
 	cfg.CircuitBreakerConfig = breaker.NoopBreakerConfig()
 	cfg.InstanceMetadataClient = imds.NewDisabledIMDSClient()
 	proxyProcess := startAndWait(t, cfg, service.ProxyWebServerReady)
-	t.Cleanup(func() { proxyProcess.Close() })
+	t.Cleanup(
+		func() {
+			assert.NoError(t, proxyProcess.Close())
+			assert.NoError(t, proxyProcess.Wait())
+		},
+	)
 	proxyWebAddr, err := proxyProcess.ProxyWebAddr()
 	require.NoError(t, err)
 
