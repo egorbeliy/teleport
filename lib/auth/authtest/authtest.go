@@ -122,6 +122,9 @@ type AuthServerConfig struct {
 	InsecureMode   bool
 	// Modules defines build time constraints and licensed features.
 	Modules modules.Modules
+	// AppSessionExpiryService opts the test auth server into the app session
+	// expiry service code path.
+	AppSessionExpiryService bool
 }
 
 // CheckAndSetDefaults checks and sets defaults
@@ -331,7 +334,7 @@ func NewAuthServer(cfg AuthServerConfig) (*AuthServer, error) {
 	}
 
 	access := local.NewAccessService(srv.Backend)
-	identity, err := local.NewTestIdentityService(srv.Backend)
+	identity, err := local.NewTestIdentityService(srv.Backend, local.WithAppSessionExpiryService(cfg.AppSessionExpiryService))
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
